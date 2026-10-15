@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copy the mizan-agent-tools client into src/vendor until it is published to npm.
 set -e
-SRC="$(dirname "$0")/../../mizan-agent-tools/src"
+SRC="${MIZAN_CLIENT_SRC:-$(dirname "$0")/../../mizan-agent-tools/src}"
 DST="$(dirname "$0")/../src/vendor/mizan-agent-tools"
 mkdir -p "$DST"
 for f in client.ts types.ts index.ts; do

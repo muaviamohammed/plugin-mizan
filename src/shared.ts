@@ -50,7 +50,7 @@ export function findCredentialRef(
 
 /** Words that signal the agent is about to rely on someone else's performance claim. */
 export const TRUST_INTENT =
-  /\b(copy|copying|copy-?trad\w*|mirror|follow(ing)?\s+(the\s+)?(trades?|signals?|strategy)|pay(ing)?\s+for\s+(signals?|alpha|access)|subscribe|allocat\w*|invest\w*|deposit\w*\s+(in|into)|vault|track\s*record|tear-?sheet|backtest|sharpe|performance|returns?|verify|verified|credential|proven|pnl|p&l)\b/i;
+  /\b(copy|copying|copy-?trad\w*|mirror|follow(ing)?\s+(the\s+)?(trades?|signals?|strategy)|pay(ing)?\s+for\s+(signals?|alpha|access)|subscribe|allocat\w*|invest\w*|deposit\w*\s+(in|into)|vault|track\s*record|tear-?sheet|backtest|sharpe|performance|returns?|verify|verified|credential|proven|legit|scam|trust\w*|pnl|p&l)\b/i;
 
 /** JSON-safe copy of a result for ActionResult.data (typed loosely across elizaOS 1.x and 2.x). */
 export function toData<T>(x: unknown): T {

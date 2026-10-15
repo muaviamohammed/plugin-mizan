@@ -1,6 +1,8 @@
 // Vendored from mizan-agent-tools (MIT). Do not edit here; run scripts/sync-client.sh.
 import type {
+  CheckAgentResult,
   CredentialSummary,
+  ProvenAgentsResult,
   Dataset,
   DatasetQuery,
   DatasetsResult,
@@ -278,6 +280,28 @@ export class MizanClient {
   }
 
   /**
+   * One-call counterparty check: call BEFORE following, copying, paying or allocating to an agent or
+   * wallet that claims returns. `agent` may be a name/alias, credential id, wallet address, ERC-8004 id,
+   * agent-card URL or bundle sha256; `action` describes what you are about to do (e.g. "copy", "pay").
+   * UNVERIFIED means unproven, which is not the same as false.
+   */
+  async checkAgent(agent: string, action?: string): Promise<CheckAgentResult> {
+    const q = (agent || "").trim();
+    if (!q) throw new Error("checkAgent: pass an agent name, id, wallet, ERC-8004 id, agent-card URL or sha256");
+    const qs = new URLSearchParams({ q });
+    if (action && action.trim()) qs.set("action", action.trim());
+    const r = await this.getJson<CheckAgentResult>(`/api/agents/check?${qs.toString()}`);
+    return { ...r, matches: r.matches || [], caveat: r.caveat || MIZAN_CAVEAT };
+  }
+
+  /** Credentials with a PASS verdict (by default only Bitcoin-confirmed ones: realOnly=true). */
+  async listProvenAgents(limit = 25, realOnly = true): Promise<ProvenAgentsResult> {
+    const n = Math.min(Math.max(Math.floor(limit) || 25, 1), 200);
+    const r = await this.getJson<ProvenAgentsResult>(`/api/agents/proven?limit=${n}&real_only=${realOnly ? "true" : "false"}`);
+    return { ...r, proven: r.proven || [], caveat: r.caveat || MIZAN_CAVEAT };
+  }
+
+  /**
    * Free, private gate preview on the sealed path (POST /x402/preview; no account, about 10 per IP per day).
    * Sends positions only. Nothing is published and no credential is created.
    */
@@ -331,6 +355,8 @@ const def = () => (_default ??= new MizanClient());
 
 export const verifyCredential = (idOrQuery: Parameters<MizanClient["verifyCredential"]>[0], opts?: VerifyOptions) =>
   def().verifyCredential(idOrQuery, opts);
+export const checkAgent = (agent: string, action?: string) => def().checkAgent(agent, action);
+export const listProvenAgents = (limit?: number, realOnly?: boolean) => def().listProvenAgents(limit, realOnly);
 export const searchCredentials = (q?: SearchQuery) => def().searchCredentials(q);
 export const listDatasets = (q?: DatasetQuery) => def().listDatasets(q);
 export const mintPreview = (body: MintPreviewBody) => def().mintPreview(body);

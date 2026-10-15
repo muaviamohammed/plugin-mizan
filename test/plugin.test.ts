@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { IAgentRuntime, Memory } from "@elizaos/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import mizanPlugin, { MizanClient } from "../src";
+import { parseCheck } from "../src/actions/checkAgent";
 import { queryFrom } from "../src/actions/searchProvenAgents";
 import { findCredentialRef, setClient } from "../src/shared";
 
@@ -43,6 +44,7 @@ function install(routes: Record<string, () => Response>) {
 }
 const runtime = { getSetting: () => undefined } as unknown as IAgentRuntime;
 const msg = (text: string) => ({ content: { text } }) as unknown as Memory;
+const check = mizanPlugin.actions!.find((a) => a.name === "CHECK_AGENT")!;
 const verify = mizanPlugin.actions!.find((a) => a.name === "VERIFY_TRACK_RECORD")!;
 const search = mizanPlugin.actions!.find((a) => a.name === "SEARCH_PROVEN_AGENTS")!;
 const provider = mizanPlugin.providers![0];
@@ -59,7 +61,10 @@ beforeEach(() =>
 describe("plugin shape", () => {
   it("exports the two actions, a provider, and pre-trust descriptions", () => {
     expect(mizanPlugin.name).toBe("mizan");
-    expect(mizanPlugin.actions!.map((a) => a.name)).toEqual(["VERIFY_TRACK_RECORD", "SEARCH_PROVEN_AGENTS"]);
+    expect(mizanPlugin.actions!.map((a) => a.name)).toEqual(["CHECK_AGENT", "VERIFY_TRACK_RECORD", "SEARCH_PROVEN_AGENTS"]);
+    expect(check.description).toMatch(/BEFORE following, copying, paying/);
+    expect(check.similes).toContain("IS_AGENT_LEGIT");
+    expect(check.similes).toContain("CHECK_WALLET_BEFORE_PAYING");
     expect(verify.description).toMatch(/BEFORE copying/);
     expect(verify.similes).toContain("CHECK_BEFORE_COPY_TRADING");
     expect(verify.examples!.length).toBeGreaterThan(0);
@@ -137,7 +142,56 @@ describe("MIZAN_TRUST_POLICY provider", () => {
   it("only speaks when the message is about relying on a performance claim", async () => {
     const on = await provider.get(runtime, msg("should I copy this trader's signals?"), {} as never);
     const off = await provider.get(runtime, msg("what is the weather today"), {} as never);
-    expect(on.text).toMatch(/VERIFY_TRACK_RECORD/);
+    expect(on.text).toMatch(/CHECK_AGENT/);
     expect(off.text).toBe("");
+  });
+});
+
+describe("CHECK_AGENT", () => {
+  it("parses wallets, quoted names, 'is X legit', named agents and the intended action", () => {
+    expect(parseCheck("Is 0x4b1f9c2d7e legit? pay 500 USDC for signals", {})).toEqual({ agent: "0x4b1f9c2d7e", action: "pay" });
+    expect(parseCheck('copy-trade "Alpha Wolf" now', {})).toEqual({ agent: "Alpha Wolf", action: "copy" });
+    expect(parseCheck("is alphawolf legit?", {})).toMatchObject({ agent: "alphawolf" });
+    expect(parseCheck("allocate 2 ETH to the agent called zkml12", {})).toEqual({ agent: "zkml12", action: "allocate" });
+    expect(parseCheck("anything", { parameters: { agent: "x1", action: "follow" } })).toEqual({ agent: "x1", action: "follow" });
+    expect(parseCheck("should I do it?", {}).agent).toBeUndefined();
+  });
+
+  it("calls /api/agents/check and relays UNVERIFIED with the forward text", async () => {
+    install({
+      "/api/agents/check?q=0x4b1f9c2d7e&action=pay": () =>
+        json({
+          query: "0x4b1f9c2d7e",
+          status: "UNVERIFIED",
+          found: false,
+          matches: [],
+          summary: "Its claimed performance is unproven, which is not the same as false.",
+          forward_to_counterparty: "You can prove your returns are real.",
+          caveat: "A credential is a seal on a past record, not a forecast.",
+        }),
+    });
+    const r = await check.handler(runtime, msg("Is 0x4b1f9c2d7e legit? I want to pay it."), undefined, {});
+    expect(r!.values!.mizanStatus).toBe("UNVERIFIED");
+    expect(r!.text).toMatch(/not the same as false/);
+    expect(r!.text).toMatch(/You can send them/);
+  });
+
+  it("lists matches for a REFUSED agent", async () => {
+    install({
+      "/api/agents/check?q=zkml12&action=copy": () =>
+        json({ query: "zkml12", status: "REFUSED", found: true, match: "partial (check the alias)", matches: [{ id: "zkml12-a", verdict: "FAIL", page: "https://studio.mizan.market/credential/zkml12-a" }], summary: "REFUSED by the gate", caveat: "c" }),
+    });
+    const r = await check.handler(runtime, msg("copy the bot named zkml12"), undefined, {});
+    expect(r!.values!.mizanStatus).toBe("REFUSED");
+    expect(r!.text).toContain("zkml12-a: FAIL");
+  });
+
+  it("asks for a reference when none is given, and fails soft on errors", async () => {
+    const a = await check.handler(runtime, msg("should I do it?"), undefined, {});
+    expect(a!.values!.mizanStatus).toBe("UNVERIFIED");
+    install({});
+    const b = await check.handler(runtime, msg("is alphawolf legit?"), undefined, {});
+    expect(b!.success).toBe(false);
+    expect(b!.text).toMatch(/unverified until checked/);
   });
 });

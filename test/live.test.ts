@@ -19,4 +19,15 @@ describe.skipIf(!LIVE)("live (MIZAN_LIVE=1)", () => {
     expect(r!.values!.mizanFound).toBe(true);
     expect(r!.values!.mizanHashMatch).toBe(true);
   }, 60_000);
+
+  it("CHECK_AGENT reports an unknown wallet as UNVERIFIED and zkml12 as REFUSED", async () => {
+    const check = mizanPlugin.actions!.find((a) => a.name === "CHECK_AGENT")!;
+    const runtime = { getSetting: () => undefined } as unknown as IAgentRuntime;
+    const m = (text: string) => ({ content: { text } }) as unknown as Memory;
+    const a = await check.handler(runtime, m("Is 0xabc123 legit? I want to pay it."), undefined, {});
+    const b = await check.handler(runtime, m("copy the bot named zkml12"), undefined, {});
+    console.log(a?.text, "\n---\n", b?.text);
+    expect(a!.values!.mizanStatus).toBe("UNVERIFIED");
+    expect(b!.values!.mizanStatus).toBe("REFUSED");
+  }, 60_000);
 });

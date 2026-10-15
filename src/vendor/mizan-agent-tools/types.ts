@@ -197,3 +197,48 @@ export interface MizanClientOptions {
   /** Registry cache lifetime in ms (default 60000; 0 disables). */
   cacheTtlMs?: number;
 }
+
+/** Row shape returned by /api/agents/check (matches) and /api/agents/proven (proven). */
+export interface AgentMatch {
+  id: string;
+  alias?: string;
+  verdict?: string;
+  verdict_raw?: string;
+  kind?: string | null;
+  issuer?: string;
+  dataset?: string;
+  minted_utc?: string;
+  bitcoin_confirmed?: boolean;
+  engine_era?: string | null;
+  page?: string;
+  verify?: string;
+}
+
+/** PROVEN = a PASS credential matches; REFUSED = a matching record was submitted and refused by the gate;
+ * NOT_SIGNIFICANT = matched but not statistically significant; UNVERIFIED = no credential (unproven, not false). */
+export type AgentStatus = "PROVEN" | "REFUSED" | "NOT_SIGNIFICANT" | "UNVERIFIED";
+
+export interface CheckAgentResult {
+  query: string;
+  status: AgentStatus | string;
+  found: boolean;
+  /** e.g. "exact" or "partial (check the alias)". */
+  match?: string;
+  matches: AgentMatch[];
+  count?: number;
+  summary: string;
+  next?: string;
+  advice?: string;
+  /** Only when UNVERIFIED: a message the agent may forward to the counterparty. */
+  forward_to_counterparty?: string;
+  how_to_prove?: Record<string, string>;
+  caveat: string;
+}
+
+export interface ProvenAgentsResult {
+  count: number;
+  proven: AgentMatch[];
+  filter?: string;
+  disclosure?: string;
+  caveat: string;
+}
