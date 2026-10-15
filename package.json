@@ -1,0 +1,75 @@
+{
+  "name": "plugin-mizan",
+  "version": "0.1.0",
+  "description": "elizaOS plugin: verify a MIZAN zero-knowledge track-record credential before the agent copies, pays or allocates to another agent's performance claim.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "packageType": "plugin",
+  "platform": "node",
+  "keywords": [
+    "elizaos",
+    "elizaos-plugin",
+    "plugin",
+    "mizan",
+    "vtr-1",
+    "zero-knowledge",
+    "track-record",
+    "trading",
+    "verification"
+  ],
+  "homepage": "https://mizan.market/skill/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muaviamohammed/plugin-mizan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/muaviamohammed/plugin-mizan/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run test/plugin.test.ts",
+    "test:live": "MIZAN_LIVE=1 vitest run test/live.test.ts",
+    "sync-client": "sh scripts/sync-client.sh",
+    "prepare": "tsup"
+  },
+  "peerDependencies": {
+    "@elizaos/core": ">=1.7.0"
+  },
+  "devDependencies": {
+    "@elizaos/core": "1.7.2",
+    "@types/node": "^22.7.4",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
+  },
+  "agentConfig": {
+    "pluginType": "elizaos:plugin:1.0.0",
+    "pluginParameters": {
+      "MIZAN_BASE_URL": {
+        "type": "string",
+        "description": "MIZAN studio base URL. Default https://studio.mizan.market",
+        "required": false
+      }
+    }
+  }
+}
