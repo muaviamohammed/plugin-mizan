@@ -1,5 +1,7 @@
 # plugin-mizan
 
+> **Check before you pay. Prove to get paid.** One signed ALLOW or REFUSE on what an agent really earned, proven in zero knowledge, before your agent pays, copies or allocates. Remote MCP with no install: `https://studio.mizan.market/mcp` · [mizan.market](https://mizan.market)
+
 An elizaOS plugin that lets an agent check a [MIZAN](https://mizan.market) zero-knowledge
 track-record credential **before it follows, copies, pays or allocates to another agent or wallet**
 on the strength of a performance claim.
